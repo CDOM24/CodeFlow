@@ -1,0 +1,101 @@
+CAMBIOS BACKEND API - CodeFlow
+Fecha: 2026-05-19
+
+Objetivo:
+Crear una primera API en Laravel para conectar despues el frontend React de CodeFlow.
+
+Archivos creados o modificados:
+
+1. bootstrap/app.php
+- Se activo el archivo routes/api.php.
+- Se registro el middleware codeflow.token.
+- Utilidad: permite que Laravel responda rutas bajo /api y proteja rutas privadas con token.
+
+2. routes/api.php
+- Se agrego GET /api/health.
+- Se agrego POST /api/register.
+- Se agrego POST /api/login.
+- Se agrego POST /api/logout.
+- Se agrego GET /api/me.
+- Se agrego PUT /api/me.
+- Se agrego POST /api/lessons/{lessonId}/complete.
+- Se agrego POST /api/challenges/{challengeId}/complete.
+- Utilidad: define los endpoints que luego consumira React.
+
+3. app/Http/Controllers/Api/AuthController.php
+- Maneja registro, inicio de sesion y cierre de sesion.
+- Devuelve un token para usar en Authorization: Bearer TOKEN.
+- Acepta variantes de Nivel Basico/Nivel Básico para evitar choques con el texto del frontend.
+- Utilidad: permite que React tenga usuarios reales en base de datos.
+
+4. app/Http/Controllers/Api/ProfileController.php
+- Devuelve el perfil del usuario.
+- Actualiza datos basicos.
+- Guarda progreso de lecciones y retos.
+- Normaliza el nivel del usuario cuando se actualiza.
+- Utilidad: reemplaza poco a poco el localStorage del frontend.
+
+5. app/Http/Middleware/CodeflowTokenAuth.php
+- Lee el token enviado por React.
+- Busca el usuario dueño del token.
+- Bloquea rutas privadas si no hay token valido.
+- Utilidad: protege endpoints como /api/me y progreso.
+
+6. app/Models/User.php
+- Se agregaron campos editables y casts para datos de CodeFlow:
+  api_token, avatar, nivel, xp, racha, lecciones_completadas, logros,
+  retos_completados y progreso_lecciones.
+- Utilidad: Laravel puede guardar el mismo tipo de usuario que hoy maneja React.
+
+7. database/migrations/2026_05_19_000000_add_codeflow_profile_fields_to_users_table.php
+- Agrega a la tabla users los campos necesarios para CodeFlow.
+- Utilidad: prepara la base de datos para guardar progreso real.
+
+8. tests/Feature/ApiAuthTest.php
+- Prueba registro + consulta de perfil.
+- Prueba completar una leccion una sola vez.
+- Utilidad: ayuda a confirmar que la API funciona al hacer cambios.
+
+Comandos utiles:
+
+Levantar backend:
+php artisan serve
+
+Probar salud de API:
+http://localhost:8000/api/health
+
+Ejecutar migraciones:
+php artisan migrate
+
+Ejecutar pruebas:
+php artisan test
+
+Ejemplo de registro:
+POST http://localhost:8000/api/register
+Body JSON:
+{
+  "nombre": "Carlos",
+  "correo": "carlos@example.com",
+  "password": "1234",
+  "nivel": "Nivel 0"
+}
+
+Ejemplo de login:
+POST http://localhost:8000/api/login
+Body JSON:
+{
+  "correo": "carlos@example.com",
+  "password": "1234"
+}
+
+Ejemplo de ruta privada:
+GET http://localhost:8000/api/me
+Header:
+Authorization: Bearer TOKEN_RECIBIDO
+
+Nota:
+Por ahora no se movio el frontend. Se mantiene separado en:
+E:\Carlos\Documents\codeflow-spark-main
+
+Recomendacion:
+Primero terminar backend y conexion con React. Al final se decide si conviene subir frontend y backend separados o unirlos en un solo repositorio.

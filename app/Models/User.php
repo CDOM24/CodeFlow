@@ -22,6 +22,15 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'api_token',
+        'avatar',
+        'nivel',
+        'xp',
+        'racha',
+        'lecciones_completadas',
+        'logros',
+        'retos_completados',
+        'progreso_lecciones',
     ];
 
     /**
@@ -44,6 +53,12 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'xp' => 'integer',
+            'racha' => 'integer',
+            'lecciones_completadas' => 'integer',
+            'logros' => 'array',
+            'retos_completados' => 'array',
+            'progreso_lecciones' => 'array',
         ];
     }
 }
