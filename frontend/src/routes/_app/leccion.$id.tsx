@@ -1,11 +1,11 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type Dispatch, type DragEvent, type SetStateAction } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Lightbulb, Play, RotateCcw, Check, Star, Plus, X } from "lucide-react";
 import { useLearning } from "@/context/LearningContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import type { CompleteLessonPayload, Leccion } from "@/types/learning";
+import type { Bloque, CompleteLessonPayload, Leccion } from "@/types/learning";
 
 export const Route = createFileRoute("/_app/leccion/$id")({
   component: LeccionPage,
@@ -49,7 +49,7 @@ function LeccionPage() {
     try {
       await completarLeccion(leccion.id, payload);
       setSalida({ ok: true, msg: leccion.mensajeExito ?? "Correcto. Progreso guardado." });
-      toast.success(`+${leccion.xp} XP`);
+      toast.success(leccion.xp > 0 ? `+${leccion.xp} XP` : "Lectura completada");
       setTimeout(() => navigate({ to: "/cursos" }), 650);
     } catch {
       setSalida({ ok: false, msg: "Aun no es correcto. Revisa la instruccion o abre la pestana Ayuda." });
@@ -63,7 +63,7 @@ function LeccionPage() {
           <ArrowLeft className="h-4 w-4" /> {curso.titulo} <span className="text-muted-foreground/60">/</span> {leccion.titulo}
         </Link>
         <span className="flex items-center gap-1 rounded-full bg-warning/15 px-3 py-1 text-xs font-semibold text-warning-foreground">
-          <Star className="h-3.5 w-3.5 fill-warning text-warning" /> XP: {leccion.xp}
+          <Star className="h-3.5 w-3.5 fill-warning text-warning" /> {leccion.xp > 0 ? `XP: ${leccion.xp}` : "Lectura"}
         </span>
       </div>
 
@@ -112,10 +112,7 @@ function LeccionPage() {
               )}
 
               {leccion.tipo === "reading" && (
-                <div className="rounded-2xl bg-gradient-soft p-5 text-sm">
-                  <p>{leccion.contenido}</p>
-                  <p className="mt-3 font-semibold">{leccion.instruccion}</p>
-                </div>
+                <ReadingLesson leccion={leccion} />
               )}
 
               {leccion.tipo === "console" && (
@@ -125,7 +122,8 @@ function LeccionPage() {
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={ejecutar} disabled={yaCompletada}
                   className="flex items-center justify-center gap-2 rounded-xl bg-success py-3 text-sm font-semibold text-success-foreground hover:opacity-90 disabled:opacity-50">
-                  <Play className="h-4 w-4 fill-current" /> {yaCompletada ? "Completada" : "Validar"}
+                  {leccion.tipo === "reading" ? <Check className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
+                  {yaCompletada ? "Completada" : leccion.tipo === "reading" ? "Marcar como leida" : "Validar"}
                 </button>
                 <button onClick={() => { setCodigo(""); setBloques([]); setSelectedOption(""); setSalida(null); }}
                   className="flex items-center justify-center gap-2 rounded-xl border bg-card py-3 text-sm font-semibold hover:bg-secondary">
@@ -175,44 +173,116 @@ function buildPayload(leccion: Leccion, codigo: string, bloques: string[], selec
   return { answer: codigo };
 }
 
+function ReadingLesson({ leccion }: { leccion: Leccion }) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border bg-card p-5">
+        <div className="mb-2 text-xs font-bold uppercase text-primary">Leccion</div>
+        <p className="text-sm leading-7 text-muted-foreground">{leccion.contenido}</p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        {[
+          ["1", "Una instruccion es una orden pequena."],
+          ["2", "Un programa es una secuencia ordenada."],
+          ["3", "Los bloques ayudan a pensar antes de escribir codigo."],
+        ].map(([step, text]) => (
+          <div key={step} className="rounded-xl border bg-background p-4">
+            <div className="mb-2 flex h-7 w-7 items-center justify-center rounded-lg bg-primary-soft text-xs font-bold text-primary">
+              {step}
+            </div>
+            <p className="text-sm font-medium leading-relaxed">{text}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl bg-success/10 px-4 py-3 text-sm font-medium text-success">
+        {leccion.instruccion ?? "Lee con calma y continua cuando estes listo."}
+      </div>
+    </div>
+  );
+}
+
 function BlocksExercise({ leccion, bloques, setBloques }: {
   leccion: Leccion;
   bloques: string[];
-  setBloques: (value: string[]) => void;
+  setBloques: Dispatch<SetStateAction<string[]>>;
 }) {
-  const selected = bloques.map((id) => leccion.bloques.find((block) => block.id === id)).filter(Boolean);
+  const [dragOver, setDragOver] = useState(false);
+  const selected = bloques
+    .map((id) => leccion.bloques.find((block) => block.id === id))
+    .filter((block): block is Bloque => Boolean(block));
+
+  const addBlock = (id: string) => setBloques((current) => [...current, id]);
+  const removeBlock = (index: number) => setBloques((current) => current.filter((_, i) => i !== index));
+  const clearBlocks = () => setBloques([]);
+  const handleDragStart = (event: DragEvent<HTMLButtonElement>, id: string) => {
+    event.dataTransfer.setData("text/plain", id);
+    event.dataTransfer.effectAllowed = "copy";
+  };
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const id = event.dataTransfer.getData("text/plain");
+    if (id) addBlock(id);
+    setDragOver(false);
+  };
 
   return (
     <div className="space-y-4">
       <div className="rounded-2xl bg-gradient-soft p-4 text-sm">
         <div className="font-semibold">{leccion.instruccion}</div>
-        <p className="mt-1 text-muted-foreground">Toca los bloques para agregarlos al programa.</p>
+        <p className="mt-1 text-muted-foreground">Arrastra los bloques al programa o tocalos para agregarlos en orden.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div>
+        <div className="rounded-2xl border bg-card p-4">
           <div className="mb-2 text-xs font-bold uppercase text-muted-foreground">Bloques disponibles</div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {leccion.bloques.map((block) => (
-              <button key={block.id} onClick={() => setBloques([...bloques, block.id])}
-                className="flex w-full items-center justify-between rounded-xl border bg-card px-3 py-2.5 text-left text-sm transition hover:border-primary/40 hover:bg-primary-soft">
-                <span>{block.label}</span>
-                <Plus className="h-4 w-4 text-primary" />
-              </button>
+              <VisualBlock
+                key={block.id}
+                block={block}
+                onClick={() => addBlock(block.id)}
+                onDragStart={(event) => handleDragStart(event, block.id)}
+              />
             ))}
           </div>
         </div>
 
-        <div>
-          <div className="mb-2 text-xs font-bold uppercase text-muted-foreground">Tu programa</div>
-          <div className="min-h-40 space-y-2 rounded-2xl border bg-background p-3">
-            {selected.length === 0 && <div className="py-8 text-center text-sm text-muted-foreground">Agrega bloques aqui</div>}
+        <div className="rounded-2xl border bg-card p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-xs font-bold uppercase text-muted-foreground">Tu programa</div>
+            {selected.length > 0 && (
+              <button onClick={clearBlocks} className="text-xs font-semibold text-muted-foreground hover:text-destructive">
+                Limpiar
+              </button>
+            )}
+          </div>
+          <div
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            className={`min-h-60 rounded-2xl border-2 border-dashed bg-background p-3 transition ${
+              dragOver ? "border-primary bg-primary-soft/40" : "border-border"
+            }`}
+          >
+            <div className="mb-3 rounded-xl border bg-card px-3 py-2 text-xs font-semibold text-muted-foreground">
+              Cuando se ejecute
+            </div>
+            {selected.length === 0 && (
+              <div className="flex min-h-32 items-center justify-center rounded-xl bg-secondary/50 px-4 text-center text-sm text-muted-foreground">
+                Suelta aqui el primer bloque
+              </div>
+            )}
             {selected.map((block, index) => block && (
-              <div key={`${block.id}-${index}`} className="flex items-center justify-between rounded-xl bg-primary-soft px-3 py-2 text-sm font-medium text-primary">
-                <span>{index + 1}. {block.label}</span>
-                <button onClick={() => setBloques(bloques.filter((_, i) => i !== index))} className="rounded-md p-1 hover:bg-background">
-                  <X className="h-3.5 w-3.5" />
-                </button>
+              <div key={`${block.id}-${index}`} className="mb-2 flex items-center gap-2">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-secondary text-xs font-bold text-muted-foreground">
+                  {index + 1}
+                </div>
+                <VisualBlock block={block} compact onRemove={() => removeBlock(index)} />
               </div>
             ))}
           </div>
@@ -220,6 +290,76 @@ function BlocksExercise({ leccion, bloques, setBloques }: {
       </div>
     </div>
   );
+}
+
+function VisualBlock({ block, compact = false, onClick, onDragStart, onRemove }: {
+  block: Bloque;
+  compact?: boolean;
+  onClick?: () => void;
+  onDragStart?: (event: DragEvent<HTMLButtonElement>) => void;
+  onRemove?: () => void;
+}) {
+  const colors = blockColors(block.kind);
+  const content = (
+    <>
+      <span className={`absolute -left-2 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full ${colors.tab}`} />
+      <span className={`absolute -right-2 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border-4 border-card ${colors.notch}`} />
+      <span className="min-w-0 flex-1 truncate">{block.label}</span>
+      {onRemove ? (
+        <button onClick={onRemove} className="rounded-md p-1 hover:bg-white/30" aria-label="Quitar bloque">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      ) : (
+        <Plus className="h-4 w-4 shrink-0" />
+      )}
+    </>
+  );
+
+  const className = `relative flex w-full items-center gap-2 rounded-xl border px-4 py-3 text-left text-sm font-semibold shadow-sm transition ${colors.block} ${
+    compact ? "py-2.5" : "cursor-grab active:cursor-grabbing hover:-translate-y-0.5 hover:shadow-md"
+  }`;
+
+  if (onClick) {
+    return (
+      <button draggable onClick={onClick} onDragStart={onDragStart} className={className}>
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
+}
+
+function blockColors(kind: string) {
+  if (kind === "event") {
+    return {
+      block: "border-emerald-300 bg-emerald-100 text-emerald-900",
+      tab: "bg-emerald-400",
+      notch: "bg-emerald-100",
+    };
+  }
+
+  if (kind === "logic") {
+    return {
+      block: "border-amber-300 bg-amber-100 text-amber-950",
+      tab: "bg-amber-400",
+      notch: "bg-amber-100",
+    };
+  }
+
+  if (kind === "data") {
+    return {
+      block: "border-sky-300 bg-sky-100 text-sky-950",
+      tab: "bg-sky-400",
+      notch: "bg-sky-100",
+    };
+  }
+
+  return {
+    block: "border-violet-300 bg-violet-100 text-violet-950",
+    tab: "bg-violet-400",
+    notch: "bg-violet-100",
+  };
 }
 
 function QuizExercise({ leccion, selectedOption, setSelectedOption }: {
