@@ -114,5 +114,21 @@ Cambios en frontend:
 - Se corrigio el texto "Nivel Nivel 0" para mostrar solo el nivel del usuario.
 - El tutor se marco como practica porque todavia no usa una IA real.
 
+Cambios de aprendizaje estructurado:
+- Se agregaron tablas learning_levels, lessons y daily_challenges.
+- Se agregaron modelos LearningLevel, Lesson y DailyChallenge.
+- Se agrego CodeflowLearningSeeder para cargar niveles, lecciones y retos predefinidos.
+- Se agrego GET /api/learning para entregar niveles, lecciones y retos al frontend.
+- Se agrego GET /api/lessons/{lessonId} para consultar una leccion puntual.
+- Completar lecciones ahora valida la respuesta en Laravel y suma el XP definido en la base de datos.
+- Completar retos ahora suma el XP definido en Laravel, no el XP enviado desde React.
+- Nivel 0 quedo preparado como ejercicios de bloques.
+- Los niveles siguientes quedaron preparados para consola y preguntas de seleccion.
+- Se quito el bloque visual de Plan Gratuito del frontend.
+- No se modifico el chatbox/tutor.
+
+Comando para cargar o actualizar contenido predefinido:
+php artisan db:seed --class=CodeflowLearningSeeder
+
 Recomendacion:
 Primero terminar backend y conexion con React. Al final se decide si conviene subir frontend y backend separados o unirlos en un solo repositorio.

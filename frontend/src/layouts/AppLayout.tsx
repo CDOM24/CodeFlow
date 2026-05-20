@@ -60,14 +60,6 @@ function SidebarContent({ onNav }: { onNav?: () => void }) {
         })}
       </nav>
 
-      <div className="m-3 rounded-2xl bg-gradient-primary p-4 text-primary-foreground shadow-soft">
-        <div className="text-xs opacity-90">Plan Gratuito</div>
-        <div className="mt-1 text-sm font-semibold">Tutor practica: 3 / 5</div>
-        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/25">
-          <div className="h-full w-3/5 rounded-full bg-white" />
-        </div>
-      </div>
-
       <div className="border-t p-3">
         <button
           onClick={() => { logout(); navigate({ to: "/login" }); }}

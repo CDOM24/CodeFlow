@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Check, Lock, ChevronRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { cursos } from "@/data/cursos";
+import { useLearning } from "@/context/LearningContext";
 
 export const Route = createFileRoute("/_app/cursos")({
   component: CursosPage,
@@ -10,7 +10,16 @@ export const Route = createFileRoute("/_app/cursos")({
 
 function CursosPage() {
   const { user } = useAuth();
+  const { cursos, loading } = useLearning();
   if (!user) return null;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -35,7 +44,7 @@ function CursosPage() {
                     completo ? "bg-success text-success-foreground" :
                     locked ? "bg-muted text-muted-foreground" : `bg-${c.color}/15 text-${c.color}`
                   }`}>
-                    {completo ? <Check className="h-6 w-6" /> : locked ? <Lock className="h-5 w-5" /> : c.icono}
+                    {completo ? <Check className="h-6 w-6" /> : locked ? <Lock className="h-5 w-5" /> : iconFor(c.icono)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
@@ -77,4 +86,15 @@ function CursosPage() {
       </div>
     </div>
   );
+}
+
+function iconFor(icon: string) {
+  const icons: Record<string, string> = {
+    blocks: "▦",
+    terminal: ">_",
+    zap: "⚡",
+    code: "</>",
+  };
+
+  return icons[icon] ?? icon;
 }

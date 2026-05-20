@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
+import type { CompleteLessonPayload } from "@/types/learning";
 
 export interface User {
   id: string;
@@ -23,8 +24,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateUser: (patch: Partial<User>) => Promise<void>;
   addXP: (amount: number) => void;
-  completarLeccion: (id: string, xp: number) => Promise<void>;
-  completarReto: (id: string, xp: number) => Promise<void>;
+  completarLeccion: (id: string, payload: CompleteLessonPayload) => Promise<void>;
+  completarReto: (id: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -95,15 +96,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persist({ ...user, xp: user.xp + amount });
   };
 
-  const completarLeccion: AuthContextType["completarLeccion"] = async (id, xp) => {
+  const completarLeccion: AuthContextType["completarLeccion"] = async (id, payload) => {
     if (!user || user.progresoLecciones[id]) return;
-    const updated = await api.completeLesson(id, xp);
+    const updated = await api.completeLesson(id, payload);
     persist(updated);
   };
 
-  const completarReto: AuthContextType["completarReto"] = async (id, xp) => {
+  const completarReto: AuthContextType["completarReto"] = async (id) => {
     if (!user || user.retosCompletados.includes(id)) return;
-    const updated = await api.completeChallenge(id, xp);
+    const updated = await api.completeChallenge(id);
     persist(updated);
   };
 

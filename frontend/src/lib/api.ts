@@ -1,4 +1,5 @@
 import type { User } from "@/context/AuthContext";
+import type { CompleteLessonPayload, LearningPayload } from "@/types/learning";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000/api";
 
@@ -85,18 +86,21 @@ export const api = {
     return response.user;
   },
 
-  async completeLesson(id: string, xp: number) {
+  async learning() {
+    return request<LearningPayload>("/learning");
+  },
+
+  async completeLesson(id: string, payload: CompleteLessonPayload) {
     const response = await request<UserResponse>(`/lessons/${id}/complete`, {
       method: "POST",
-      body: JSON.stringify({ xp }),
+      body: JSON.stringify(payload),
     });
     return response.user;
   },
 
-  async completeChallenge(id: string, xp: number) {
+  async completeChallenge(id: string) {
     const response = await request<UserResponse>(`/challenges/${id}/complete`, {
       method: "POST",
-      body: JSON.stringify({ xp }),
     });
     return response.user;
   },

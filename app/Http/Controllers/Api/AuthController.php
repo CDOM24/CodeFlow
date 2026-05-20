@@ -96,8 +96,11 @@ class AuthController extends Controller
 
     private function normalizeNivel(string $nivel): string
     {
+        if (str_contains($nivel, 'Bas') || str_contains($nivel, 'Bás') || str_contains($nivel, 'BÃ')) {
+            return 'Nivel Basico';
+        }
+
         return match ($nivel) {
-            'Nivel Basico', 'Nivel Básico', 'Nivel BÃ¡sico' => 'Nivel Básico',
             'JavaScript' => 'JavaScript',
             'Proyectos' => 'Proyectos',
             default => 'Nivel 0',

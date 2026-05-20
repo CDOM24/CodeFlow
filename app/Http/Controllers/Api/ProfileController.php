@@ -37,51 +37,6 @@ class ProfileController extends Controller
         ]);
     }
 
-    public function completeLesson(Request $request, string $lessonId): JsonResponse
-    {
-        $data = $request->validate([
-            'xp' => ['required', 'integer', 'min:0', 'max:1000'],
-        ]);
-
-        $user = $request->attributes->get('auth_user');
-        $progress = $user->progreso_lecciones ?? [];
-
-        if (! ($progress[$lessonId] ?? false)) {
-            $progress[$lessonId] = true;
-            $user->forceFill([
-                'xp' => $user->xp + $data['xp'],
-                'lecciones_completadas' => $user->lecciones_completadas + 1,
-                'progreso_lecciones' => $progress,
-            ])->save();
-        }
-
-        return response()->json([
-            'user' => $this->userPayload($user->fresh()),
-        ]);
-    }
-
-    public function completeChallenge(Request $request, string $challengeId): JsonResponse
-    {
-        $data = $request->validate([
-            'xp' => ['required', 'integer', 'min:0', 'max:1000'],
-        ]);
-
-        $user = $request->attributes->get('auth_user');
-        $completed = $user->retos_completados ?? [];
-
-        if (! in_array($challengeId, $completed, true)) {
-            $completed[] = $challengeId;
-            $user->forceFill([
-                'xp' => $user->xp + $data['xp'],
-                'retos_completados' => $completed,
-            ])->save();
-        }
-
-        return response()->json([
-            'user' => $this->userPayload($user->fresh()),
-        ]);
-    }
-
     private function userPayload(User $user): array
     {
         return [
@@ -101,8 +56,11 @@ class ProfileController extends Controller
 
     private function normalizeNivel(string $nivel): string
     {
+        if (str_contains($nivel, 'Bas') || str_contains($nivel, 'Bás') || str_contains($nivel, 'BÃ')) {
+            return 'Nivel Basico';
+        }
+
         return match ($nivel) {
-            'Nivel Basico', 'Nivel Básico', 'Nivel BÃ¡sico' => 'Nivel Básico',
             'JavaScript' => 'JavaScript',
             'Proyectos' => 'Proyectos',
             default => 'Nivel 0',
