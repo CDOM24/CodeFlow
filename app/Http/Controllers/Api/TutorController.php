@@ -32,7 +32,7 @@ PROMPT;
             'messages.*.content' => ['required', 'string', 'max:3000'],
         ]);
 
-        $apiKey = config('services.anthropic.key');
+        $apiKey = config('services.gemini.key');
 
         if (! $apiKey) {
             return response()->json([
@@ -44,15 +44,22 @@ PROMPT;
         try {
             $response = Http::timeout(30)
                 ->withHeaders([
-                    'x-api-key' => $apiKey,
-                    'anthropic-version' => '2023-06-01',
+                    'x-goog-api-key' => $apiKey,
                     'content-type' => 'application/json',
                 ])
-                ->post('https://api.anthropic.com/v1/messages', [
-                    'model' => config('services.anthropic.model'),
-                    'max_tokens' => 900,
-                    'system' => self::SYSTEM_PROMPT,
-                    'messages' => $data['messages'],
+                ->post(sprintf(
+                    'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent',
+                    config('services.gemini.model'),
+                ), [
+                    'systemInstruction' => [
+                        'parts' => [
+                            ['text' => self::SYSTEM_PROMPT],
+                        ],
+                    ],
+                    'contents' => $this->toGeminiContents($data['messages']),
+                    'generationConfig' => [
+                        'maxOutputTokens' => 900,
+                    ],
                 ]);
         } catch (ConnectionException) {
             return response()->json([
@@ -63,24 +70,41 @@ PROMPT;
 
         if (! $response->successful()) {
             return response()->json([
-                'message' => $response->json('error.message') ?? 'Claude no pudo responder en este momento.',
+                'message' => $response->json('error.message') ?? 'Gemini no pudo responder en este momento.',
             ], $response->status());
         }
 
-        $content = collect($response->json('content', []))
-            ->where('type', 'text')
+        $content = collect($response->json('candidates.0.content.parts', []))
             ->pluck('text')
+            ->filter()
             ->implode("\n\n");
 
         return response()->json([
             'message' => $content !== '' ? $content : 'No pude generar una respuesta.',
-            'mode' => 'claude',
+            'mode' => 'gemini',
         ]);
     }
 
     /**
+     * @param  array<int, array{role: string, content: string}>  $messages
+     * @return array<int, array{role: string, parts: array<int, array{text: string}>}>
+     */
+    private function toGeminiContents(array $messages): array
+    {
+        return collect($messages)
+            ->map(fn (array $message) => [
+                'role' => $message['role'] === 'assistant' ? 'model' : 'user',
+                'parts' => [
+                    ['text' => $message['content']],
+                ],
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * Respuesta educativa de respaldo para que el tutor siga funcionando en desarrollo
-     * aunque Claude no este configurado o no haya conexion saliente.
+     * aunque Gemini no este configurado o no haya conexion saliente.
      *
      * @param  array<int, array{role: string, content: string}>  $messages
      */
@@ -104,6 +128,6 @@ PROMPT;
             return "Una variable es un nombre que guarda un valor para usarlo despues.\n\nPor ejemplo, puedes guardar una edad, un nombre o un puntaje. Lo importante es elegir un nombre claro y entender si ese valor puede cambiar.\n\nComo pista: si el dato cambia, usa una variable; si no cambia, conviene tratarlo como constante.";
         }
 
-        return "Ahora estoy funcionando en modo local porque Claude no esta configurado en el backend.\n\nAun asi puedo orientarte: divide tu duda en el concepto que no entiendes, el codigo que intentaste y el resultado que esperabas.\n\nCuentame uno de esos tres puntos y seguimos paso a paso.";
+        return "Ahora estoy funcionando en modo local porque Gemini no esta configurado en el backend.\n\nAun asi puedo orientarte: divide tu duda en el concepto que no entiendes, el codigo que intentaste y el resultado que esperabas.\n\nCuentame uno de esos tres puntos y seguimos paso a paso.";
     }
 }

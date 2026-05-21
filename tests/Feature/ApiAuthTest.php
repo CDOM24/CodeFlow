@@ -95,9 +95,9 @@ class ApiAuthTest extends TestCase
             ->assertJsonPath('challenges.0.id', 'r1');
     }
 
-    public function test_tutor_returns_local_reply_without_anthropic_key(): void
+    public function test_tutor_returns_local_reply_without_gemini_key(): void
     {
-        config(['services.anthropic.key' => null]);
+        config(['services.gemini.key' => null]);
 
         $token = $this->postJson('/api/register', [
             'nombre' => 'Carlos',

@@ -114,7 +114,7 @@ function TutorPage() {
                     <h1 className="text-xl font-bold">Tutor IA</h1>
                     <p className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Sparkles className="h-3 w-3 text-yellow-400" />
-                        Guiado por Claude - Solo programacion
+                        Guiado por Gemini - Solo programacion
                     </p>
                 </div>
             </div>
