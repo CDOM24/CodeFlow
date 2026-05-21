@@ -1,3 +1,17 @@
+# Etapa 1: compilar Vite con Node
+FROM node:20-alpine AS node_build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+COPY resources ./resources
+COPY vite.config.js ./
+RUN npm run build
+
+
+# Etapa 2: Laravel + Nginx/PHP
 FROM richarvey/nginx-php-fpm:3.1.6
 
 WORKDIR /var/www/html
@@ -14,14 +28,10 @@ ENV APP_DEBUG=false
 ENV LOG_CHANNEL=stderr
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# ✅ instalar node
-RUN apt-get update && apt-get install -y nodejs npm
-
-# ✅ instalar dependencias PHP
 RUN composer install --no-dev --optimize-autoloader
 
-# ✅ build frontend
-RUN npm install && npm run build
+# Copiar build generado por Vite
+COPY --from=node_build /app/public/build /var/www/html/public/build
 
 RUN php artisan config:clear
 RUN php artisan route:clear
