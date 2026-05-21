@@ -14,9 +14,14 @@ ENV APP_DEBUG=false
 ENV LOG_CHANNEL=stderr
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
+# ✅ instalar node
+RUN apt-get update && apt-get install -y nodejs npm
+
+# ✅ instalar dependencias PHP
 RUN composer install --no-dev --optimize-autoloader
 
-RUN if [ -f package.json ]; then npm install && npm run build; fi
+# ✅ build frontend
+RUN npm install && npm run build
 
 RUN php artisan config:clear
 RUN php artisan route:clear
