@@ -94,4 +94,26 @@ class ApiAuthTest extends TestCase
             ->assertJsonPath('levels.0.lecciones.0.tipo', 'reading')
             ->assertJsonPath('challenges.0.id', 'r1');
     }
+
+    public function test_tutor_returns_local_reply_without_anthropic_key(): void
+    {
+        config(['services.anthropic.key' => null]);
+
+        $token = $this->postJson('/api/register', [
+            'nombre' => 'Carlos',
+            'correo' => 'tutor@example.com',
+            'password' => '1234',
+            'nivel' => 'Nivel 0',
+        ])->json('token');
+
+        $this->withToken($token)
+            ->postJson('/api/tutor/reply', [
+                'messages' => [
+                    ['role' => 'user', 'content' => 'Que es una variable?'],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('mode', 'local')
+            ->assertJsonStructure(['message', 'mode']);
+    }
 }
