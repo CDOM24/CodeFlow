@@ -12,4 +12,11 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
+  vite: {
+    preview: {
+      allowedHosts: [
+        "d12hz0hsdygt4du8fw26su3d.57.156.66.101.sslip.io",
+      ],
+    },
+  },
 });
