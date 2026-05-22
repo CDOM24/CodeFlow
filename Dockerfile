@@ -16,6 +16,7 @@ FROM richarvey/nginx-php-fpm:3.1.6
 
 WORKDIR /var/www/html
 
+COPY docker/nginx/laravel.conf /etc/nginx/sites-available/default.conf
 COPY . .
 
 ENV WEBROOT=/var/www/html/public
